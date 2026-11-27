@@ -1147,6 +1147,17 @@
       display: inline;
     }
 
+    /* পড়ার মোড বাটন: পুরো প্রস্থ জুড়ে তিনটি সমান ভাগ */
+    .study-filters-row .mode-chips {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .study-filters-row .mode-chips .chip-btn {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
     .view-style-toggle {
       display: flex;
       align-items: center;
@@ -1608,55 +1619,81 @@
       margin-top: 4px;
     }
 
+    .card-answer-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
     .card-answer-toggle-btn {
-      width: 100%;
-      text-align: left;
-      padding: 9px 14px;
-      background: var(--bg-base);
-      border: 1px dashed var(--border);
+      order: 2;
+      flex: 0 0 auto;
+      width: 38px;
+      height: 34px;
+      padding: 0;
+      background: var(--bg-surface, var(--bg-base));
+      border: 1px solid var(--border);
       border-radius: var(--radius-md);
-      color: var(--primary);
-      font-family: inherit;
-      font-size: 1rem;
-      font-weight: 600;
+      color: var(--text-muted);
       cursor: pointer;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
       transition: var(--transition);
+    }
+
+    .card-answer-toggle-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
     .card-answer-toggle-btn:hover {
       background: var(--primary-soft);
       border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .card-answer-toggle-btn.on {
+      color: var(--primary);
+      border-color: var(--primary);
     }
 
     .card-answer-content {
-      display: none;
-      background: var(--bg-base);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 14px 16px;
+      order: 1;
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 2px 0;
       font-size: 1rem;
       line-height: 1.65;
       color: var(--text-main);
-      animation: fadeIn 0.18s ease;
+      filter: blur(7px);
+      opacity: 0.75;
+      user-select: none;
+      -webkit-user-select: none;
+      pointer-events: none;
+      transition: filter 0.2s ease, opacity 0.2s ease;
     }
 
     .card-answer-content.revealed {
-      display: block;
+      filter: none;
+      opacity: 1;
+      user-select: text;
+      -webkit-user-select: text;
+      pointer-events: auto;
     }
 
     .answer-label {
       font-size: 1rem;
       font-weight: 700;
-      text-transform: uppercase;
       letter-spacing: 0.5px;
       color: var(--success);
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
+      display: inline;
+      margin-right: 4px;
     }
 
     .card-example-content {
@@ -4519,14 +4556,6 @@
                   class="chip-suffix"> অনুযায়ী</span></button>
               <button class="chip-btn" id="chipMode-fav" onclick="setStudyViewMode('fav')"> রিভিশন (<span id="studyFavCount">০</span>)</button>
             </div>
-
-            <!-- View Style Switcher (Card vs Compact) -->
-            <div class="view-style-toggle">
-              <button class="view-style-btn active" id="styleCardBtn" onclick="toggleStyleMode('card')">🗂️ কার্ড
-                ভিউ</button>
-              <button class="view-style-btn" id="styleCompactBtn" onclick="toggleStyleMode('compact')">📋
-                কমপ্যাক্ট</button>
-            </div>
           </div>
 
           <!-- Requirement 3, 4, 5: Dynamic Modern Dropdowns with Sleek Custom Scrollbars -->
@@ -4544,7 +4573,6 @@
 
             <!-- Topic Dropdown (Requirement 4) -->
             <div class="study-selector-wrapper" id="topicSelectWrap" style="display:none;">
-              <span class="study-selector-label">📚 বিষয়/টপিক:</span>
               <div class="modern-dropdown-box" id="topicDropdownContainer">
                 <div class="custom-dropdown-trigger" onclick="toggleCustomDropdown('topic')">
                   <span class="trigger-text" id="topicTriggerText">টপিক নির্বাচন করুন</span>
@@ -4556,7 +4584,6 @@
 
             <!-- Revision Topic Dropdown (Requirement 5) -->
             <div class="study-selector-wrapper" id="favSelectWrap" style="display:none;">
-              <span class="study-selector-label">⭐ রিভিশন টপিক:</span>
               <div class="modern-dropdown-box" id="favDropdownContainer">
                 <div class="custom-dropdown-trigger" onclick="toggleCustomDropdown('fav')">
                   <span class="trigger-text" id="favTriggerText">সকল টপিক</span>
@@ -4591,7 +4618,7 @@
         </div>
 
         <!-- Main Cards Area -->
-        <div id="studyContentArea"></div>
+        <div id="studyContentArea" class="compact-table-mode"></div>
 
       </div>
     </section>
@@ -4908,7 +4935,7 @@
     let favoriteItems = {};
     let favs = {}; // Alias for QM and legacy compatibility
     let studyMode = 'day'; // 'day' | 'topic' | 'fav'
-    let styleMode = 'card'; // 'card' | 'compact'
+    let styleMode = 'compact'; // সবসময় কমপ্যাক্ট ভিউ
     let appOverlayStack = [];
     let appOverlayToken = 0;
 
@@ -4984,8 +5011,18 @@
 
         const storedFav = localStorage.getItem('ds_fav');
         if (storedFav) {
-          favoriteItems = JSON.parse(storedFav) || {};
+          const rawFav = JSON.parse(storedFav) || {};
+          const cleanFav = {};
+          Object.keys(rawFav).forEach(k => {
+            const v = rawFav[k];
+            /* শুধু সত্যিকারের স্টার-দেওয়া প্রশ্ন (প্রশ্ন + উত্তরসহ) রাখা হবে; পুরনো/ভুল এন্ট্রি বাদ */
+            if (v && typeof v === 'object' && typeof v.q === 'string' && v.q.trim() && typeof v.a === 'string') cleanFav[k] = v;
+          });
+          favoriteItems = cleanFav;
           favs = favoriteItems;
+          if (Object.keys(cleanFav).length !== Object.keys(rawFav).length) {
+            try { localStorage.setItem('ds_fav', JSON.stringify(cleanFav)); } catch (e) { }
+          }
         }
 
         const dayKeys = Object.keys(allDays).map(Number).sort((a, b) => a - b);
@@ -5091,19 +5128,6 @@
 
       renderStudySelectors();
       renderStudyContent();
-    }
-
-    function toggleStyleMode(mode) {
-      styleMode = mode;
-      document.getElementById('styleCardBtn').classList.toggle('active', mode === 'card');
-      document.getElementById('styleCompactBtn').classList.toggle('active', mode === 'compact');
-
-      const container = document.getElementById('studyContentArea');
-      if (mode === 'compact') {
-        container.classList.add('compact-table-mode');
-      } else {
-        container.classList.remove('compact-table-mode');
-      }
     }
 
     /* ════════════════════════════════════════════════
@@ -5217,6 +5241,13 @@
           favGrouped[key] = (favGrouped[key] || 0) + 1;
         });
 
+        if (favList.length === 0) {
+          selectedFavTopic = '__ALL__';
+          if (favTriggerText) favTriggerText.textContent = 'কিছু সংরক্ষিত নেই';
+          favMenu.innerHTML = '<div class="custom-dropdown-item" style="cursor:default;opacity:.7;"><span>স্টার (☆) দিলে এখানে জমা হবে</span></div>';
+          return;
+        }
+        if (selectedFavTopic !== '__ALL__' && !favGrouped[selectedFavTopic]) selectedFavTopic = '__ALL__';
         const isAllActive = selectedFavTopic === '__ALL__';
         if (isAllActive && favTriggerText) {
           favTriggerText.textContent = `🌟 সকল টপিক (মোট ${toBengaliNumber(favList.length)}টি)`;
@@ -5446,9 +5477,11 @@
 
         let cardsHtml = '';
         items.forEach((item, iIdx) => {
-          const itemKey = `D${topic.dayNum}_T${topic.topicIdx ?? tIdx}_I${iIdx}`;
+          const baseKey = `D${topic.dayNum}_T${topic.topicIdx ?? tIdx}_I${iIdx}`;
+          /* তিন মোডের অগ্রগতি আলাদা: দিন = আগের key, টপিক = TP_, রিভিশন = FV_ */
+          const itemKey = (studyMode === 'fav') ? ('FV_' + hashKey(favKey(topic.title, item.q))) : (studyMode === 'topic' ? 'TP_' + baseKey : baseKey);
           const isRev = !!revealedItems[itemKey];
-          const isFav = !!favoriteItems[itemKey] || !!favoriteItems[item.q] || !!favoriteItems[favKey(topic.title, item.q)];
+          const isFav = !!favoriteItems[baseKey] || !!favoriteItems[item.q] || !!favoriteItems[favKey(topic.title, item.q)];
 
           if (isRev) totalRevealed++;
 
@@ -5468,13 +5501,9 @@
               </div>
 
               <div class="card-answer-box">
-                <button class="card-answer-toggle-btn" onclick="toggleAnswer('${itemKey}')">
-                  <span>${isRev ? '✓ উত্তর লুকান' : '👁 উত্তর দেখুন'}</span>
-                  <span style="font-size:1rem;opacity:0.8;">${isRev ? '▲' : '▼'}</span>
-                </button>
+                <button class="card-answer-toggle-btn ${isRev ? 'on' : ''}" onclick="toggleAnswer('${itemKey}')" title="${isRev ? 'উত্তর লুকান' : 'উত্তর দেখুন'}" aria-label="উত্তর দেখুন/লুকান">${isRev ? EYE_OFF_SVG : EYE_SVG}</button>
                 <div class="card-answer-content ${isRev ? 'revealed' : ''}" id="ans-${itemKey}">
-                  <div class="answer-label"><span>💡 উত্তর:</span></div>
-                  <div>${formatText(item.a)}</div>
+                  <div><span class="answer-label">💡 উত্তর:</span> ${formatText(item.a)}</div>
                   ${item.ex ? `<div class="card-example-content"><strong>উদাহরণ:</strong> ${formatText(item.ex)}</div>` : ''}
                 </div>
               </div>
@@ -5508,6 +5537,9 @@
       updateProgress(totalRevealed, totalItems);
     }
 
+    const EYE_SVG = '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const EYE_OFF_SVG = '<svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.5 10.5 0 0 1 12 19c-6.5 0-10-7-10-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.5 9.5 0 0 1 12 5c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>';
+
     function toggleAnswer(itemKey) {
       revealedItems[itemKey] = !revealedItems[itemKey];
       if (!revealedItems[itemKey]) delete revealedItems[itemKey];
@@ -5521,11 +5553,11 @@
       if (revealedItems[itemKey]) {
         if (card) card.classList.add('is-revealed');
         if (ansBox) ansBox.classList.add('revealed');
-        if (btn) btn.innerHTML = '<span>✓ উত্তর লুকান</span><span style="font-size:1rem;opacity:0.8;">▲</span>';
+        if (btn) { btn.innerHTML = EYE_OFF_SVG; btn.classList.add('on'); btn.title = 'উত্তর লুকান'; }
       } else {
         if (card) card.classList.remove('is-revealed');
         if (ansBox) ansBox.classList.remove('revealed');
-        if (btn) btn.innerHTML = '<span>👁 উত্তর দেখুন</span><span style="font-size:1rem;opacity:0.8;">▼</span>';
+        if (btn) { btn.innerHTML = EYE_SVG; btn.classList.remove('on'); btn.title = 'উত্তর দেখুন'; }
       }
 
       recalculateVisibleProgress();
@@ -5609,7 +5641,6 @@
       const text = audBuild(cfg.template, q, a, ex);
       if (!text) { toast('পড়ার মতো কিছু পাওয়া যায়নি', true); return; }
       aud.voice = audPickVoice(cfg.voice);
-      if (!aud.voice) toast('ডিভাইসে বাংলা ভয়েস পাওয়া যায়নি। ফোনের Text-to-speech সেটিংসে বাংলা ভয়েস ইনস্টল করুন', true);
       aud.key = k; aud.topic = topic; aud.cfg = cfg; aud.text = text; aud.n = 0; aud.token++;
       audSync();
       const tok = aud.token;
@@ -5622,7 +5653,10 @@
       if (aud.voice) u.voice = aud.voice;
       u.rate = Math.min(2, Math.max(0.4, +aud.cfg.rate || 0.9));
       u.pitch = Math.min(2, Math.max(0.1, +aud.cfg.pitch || 1));
+      let started = false;
+      u.onstart = () => { started = true; };
       u.onend = () => {
+        started = true;
         if (aud.token !== tok) return;
         aud.n++;
         audSync();
@@ -5633,7 +5667,8 @@
       u.onerror = ev => {
         if (aud.token !== tok) return;
         if (ev.error === 'canceled' || ev.error === 'interrupted') return;
-        audStop(); toast('অডিও চালানো যায়নি (' + ev.error + ')', true);
+        if (started) return; /* অডিও আসলে চলেছে — ভুল এরর দেখানো হবে না */
+        audStop(); toast('অডিও চালানো যায়নি', true);
       };
       try { speechSynthesis.speak(u); } catch (e) { audStop(); }
     }
@@ -5834,10 +5869,12 @@
 
     function toggleFav(itemKey, topicTitle, question, answer, btn) {
       const k = favKey(topicTitle, question);
-      const was = !!(favoriteItems[k] || favoriteItems[itemKey] || favoriteItems[question]);
+      const baseK = String(itemKey).replace(/^TP_/, '');
+      const was = !!(favoriteItems[k] || favoriteItems[itemKey] || favoriteItems[baseK] || favoriteItems[question]);
       if (was) {
         delete favoriteItems[k];
         delete favoriteItems[itemKey];
+        delete favoriteItems[baseK];
         delete favoriteItems[question];
         delete favs[k];
       } else {
@@ -5851,7 +5888,7 @@
       const setBtn = b => { if (b) { b.classList.toggle('starred', now); b.textContent = now ? '★' : '☆'; } };
       setBtn(btn);
       if (studyMode !== 'fav') {
-        const mirror = document.querySelector('#card-' + itemKey + ' .btn-star');
+        const mirror = document.querySelector('#card-' + itemKey + ' .btn-star:not(.btn-audio)');
         if (mirror && mirror !== btn) setBtn(mirror);
       }
 
@@ -5891,6 +5928,19 @@
       renderStudyContent();
     }
 
+    function hashKey(str) {
+      str = String(str || '');
+      let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+      for (let i = 0, ch; i < str.length; i++) {
+        ch = str.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+      }
+      h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+      h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+      return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+    }
+
     function saveProgressState() {
       try {
         localStorage.setItem('ds_progress', JSON.stringify({ r: revealedItems, c: {}, s: 1 }));
@@ -5928,7 +5978,7 @@
         (d.topics || []).forEach(t => totalQ += (t.items || []).length);
       });
 
-      const totalDone = Object.keys(revealedItems).length;
+      const totalDone = Object.keys(revealedItems).filter(k => !/^(TP_|FV_)/.test(k)).length;
       const favCount = Object.keys(favoriteItems).length;
 
       const statDaysEl = document.getElementById('statTotalDays');
@@ -6053,8 +6103,7 @@
             </div>
             <div class="card-answer-box">
               <div class="card-answer-content revealed" style="display:block;margin-top:4px;">
-                <div class="answer-label"><span>💡 উত্তর:</span></div>
-                <div>${formatText(m.item.a)}</div>
+                <div><span class="answer-label">💡 উত্তর:</span> ${formatText(m.item.a)}</div>
               </div>
             </div>
           </div>
