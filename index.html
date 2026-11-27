@@ -6546,8 +6546,8 @@
       document.documentElement.classList.toggle('layout-landscape', landscape);
       const cur = document.getElementById('layoutCurrentText');
       const hint = document.getElementById('layoutHintText');
-      if (cur) cur.textContent = 'বর্তমান লেআউট: ' + (landscape ? 'আড়াআড়ি' : 'সোজা');
-      if (hint) hint.textContent = landscape ? 'সোজা ফিরুন' : 'আড়াআড়ি করুন';
+      if (cur) cur.textContent = 'লেআউট: ' + (landscape ? 'আড়াআড়ি' : 'সোজা');
+      if (hint) hint.textContent = landscape ? 'সোজা করুন' : 'আড়াআড়ি করুন';
       const card = document.getElementById('layoutSwitchCard');
       if (card) card.setAttribute('data-mode', landscape ? 'landscape' : 'portrait');
     }
