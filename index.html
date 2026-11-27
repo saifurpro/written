@@ -1913,6 +1913,65 @@
       color: var(--danger);
     }
 
+
+    /* ── Exam: blinking day/topic tag ── */
+    .exam-topic-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary);
+      background: var(--primary-soft);
+      border: 1.5px solid var(--primary);
+      padding: 3px 12px;
+      border-radius: 999px;
+      animation: examTagGlow 1.6s ease-in-out infinite;
+    }
+
+    .exam-topic-tag .tag-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--primary);
+      animation: examTagDot 1.6s ease-in-out infinite;
+    }
+
+    @keyframes examTagGlow {
+      0%, 100% { box-shadow: 0 0 0 0 var(--primary-soft), 0 0 4px var(--primary-soft); opacity: .78; }
+      50% { box-shadow: 0 0 0 5px var(--primary-soft), 0 0 16px var(--primary); opacity: 1; }
+    }
+
+    @keyframes examTagDot {
+      0%, 100% { opacity: .25; transform: scale(.7); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .exam-topic-tag, .exam-topic-tag .tag-dot { animation: none; }
+    }
+
+    .exam-type-toggle-row {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+      font-size: 1rem;
+    }
+
+    .exam-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .exam-actions-left {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
     .exam-comparison-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -4633,6 +4692,12 @@
             <h2 style="font-size:1.3rem;font-weight:700;">📝 লিখিত পরীক্ষা ও বানান যাচাই</h2>
             <p style="font-size:1rem;color:var(--text-muted);">এখানে উত্তর লিখলে বানান ও নির্ভুলতা স্বয়ংক্রিয়ভাবে
               যাচাই হবে, অথবা সরাসরি উত্তর দেখতে পারবেন।</p>
+            <div class="exam-type-toggle-row">
+              <label class="switch-toggle-label">
+                <input type="checkbox" id="examTypeToggle" onchange="setExamTypeMode(this.checked)">
+                <span>✍️ উত্তর টাইপ করুন (বানান যাচাইসহ)</span>
+              </label>
+            </div>
           </div>
           <div class="exam-filter">
             <div class="mode-chips">
@@ -5780,8 +5845,8 @@
           <input id="audRate" type="range" min="0.5" max="1.5" step="0.05" value="${+cfg.rate}" oninput="document.getElementById('audRateV').textContent=(+this.value).toFixed(2)">
           <div class="acts">
             <button type="button" onclick="audPreview()">▶ শুনে দেখুন</button>
-            <button type="button" onclick="audSaveSettings(false, true)" class="pri">${_audEditTopic ? 'এই সেকশনের জন্য সেভ' : 'সেভ'}</button>
-            <button type="button" onclick="audSaveSettings(true, true)">সব সেকশনের ডিফল্ট</button>
+            <button type="button" onclick="audSaveSettings(false, true)" class="pri">${_audEditTopic ? 'এই সেকশন সেভ' : 'সেভ'}</button>
+            <button type="button" onclick="audSaveSettings(true, true)">ডিফল্ট সেভ</button>
             <button type="button" onclick="audResetSettings()">রিসেট</button>
             <button type="button" onclick="audCloseSettings()">বন্ধ</button>
           </div>
@@ -6160,33 +6225,64 @@
       renderExamCard();
     }
 
+    /* উত্তর টাইপ করার অপশন (ডিফল্ট বন্ধ) */
+    const EXAM_TYPE_KEY = 'ds_exam_type_on';
+    let examAnswered = false;
+    document.addEventListener('DOMContentLoaded', function () { const cb = document.getElementById('examTypeToggle'); if (cb) cb.checked = examTypeEnabled(); });
+
+    function examTypeEnabled() {
+      try { return localStorage.getItem(EXAM_TYPE_KEY) === '1'; } catch (e) { return false; }
+    }
+
+    function applyExamTypeMode() {
+      const on = examTypeEnabled();
+      const cb = document.getElementById('examTypeToggle');
+      if (cb) cb.checked = on;
+      const wrap = document.getElementById('examTypeWrap');
+      const btnCheck = document.getElementById('btnCheckAnswer');
+      if (wrap) wrap.style.display = on ? 'block' : 'none';
+      if (btnCheck) btnCheck.style.display = (on && !examAnswered) ? 'inline-flex' : 'none';
+    }
+
+    function setExamTypeMode(on) {
+      try { localStorage.setItem(EXAM_TYPE_KEY, on ? '1' : '0'); } catch (e) { }
+      applyExamTypeMode();
+      if (on) {
+        const inp = document.getElementById('examUserAnswer');
+        if (inp && !inp.disabled) inp.focus();
+      }
+    }
+
     function renderExamCard() {
       const area = document.getElementById('examBodyArea');
       const q = examQuestions[examCurrentIdx];
+      const isLast = examCurrentIdx >= examQuestions.length - 1;
+      examAnswered = false;
 
       area.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
           <span style="font-weight:700;color:var(--primary);font-size:1rem;">প্রশ্ন ${toBengaliNumber(examCurrentIdx + 1)} / ${toBengaliNumber(examQuestions.length)}</span>
-          <span style="font-size:1rem;color:var(--text-muted);background:var(--bg-base);padding:2px 8px;border-radius:999px;">Day ${toBengaliNumber(q.dayNum)} · ${escapeHtml(q.topicTitle)}</span>
+          <span class="exam-topic-tag" title="এই প্রশ্নটি যে দিন ও টপিক থেকে এসেছে"><span class="tag-dot"></span>Day ${toBengaliNumber(q.dayNum)} · ${escapeHtml(q.topicTitle || '')}</span>
         </div>
         <div class="exam-card-question">
           ${formatText(q.q)}
         </div>
-        <div style="margin:14px 0;">
+        <div id="examTypeWrap" style="margin:14px 0;display:none;">
           <label style="display:block;font-size:1rem;color:var(--text-muted);margin-bottom:6px;">আপনার উত্তর লিখুন (খাতায় লিখতে চাইলে খালি রেখে সরাসরি উত্তর দেখতে পারেন):</label>
           <textarea id="examUserAnswer" class="exam-write-area" placeholder="এখানে আপনার উত্তর টাইপ করুন..."></textarea>
         </div>
-        
-        <div id="examFeedbackBox" style="margin-bottom:14px;"></div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-          <div style="display:flex;gap:8px;">
-            <button class="btn-primary" id="btnCheckAnswer" onclick="verifyExamAnswer()">✓ উত্তর যাচাই করুন</button>
+        <div id="examFeedbackBox" style="margin:14px 0;"></div>
+
+        <div class="exam-actions">
+          <div class="exam-actions-left">
+            <button class="btn-primary" id="btnCheckAnswer" style="display:none;" onclick="verifyExamAnswer()">✓ উত্তর যাচাই করুন</button>
             <button class="btn-secondary" id="btnRevealOnly" onclick="revealExamAnswerDirectly()">💡 উত্তর দেখুন</button>
           </div>
-          <button class="btn-secondary" id="btnNextQuestion" style="display:none;" onclick="nextExamQuestion()">পরবর্তী প্রশ্ন →</button>
+          <button class="btn-secondary" id="btnNextQuestion" onclick="nextExamQuestion()">${isLast ? 'পরীক্ষা শেষ করুন ✓' : 'পরবর্তী প্রশ্ন →'}</button>
         </div>
       `;
+      applyExamTypeMode();
     }
 
     // Clean text for Bengali comparison
@@ -6259,6 +6355,7 @@
       }
 
       feedbackBox.innerHTML = statusHtml;
+      examAnswered = true;
       if (btnNext) btnNext.style.display = 'inline-flex';
       if (btnCheck) btnCheck.style.display = 'none';
       if (btnReveal) btnReveal.style.display = 'none';
@@ -6275,12 +6372,12 @@
       const q = examQuestions[examCurrentIdx];
       feedbackBox.innerHTML = `
         <div class="exam-feedback-banner" style="background:var(--primary-soft);border:1px solid var(--primary);color:var(--text-main);">
-          <div>💡 <strong>আদর্শ উত্তর:</strong></div>
-          <div style="font-size:1rem;margin-top:4px;line-height:1.6;">${formatText(q.a)}</div>
+          <div>💡 <strong>আদর্শ উত্তর:</strong> ${formatText(q.a)}</div>
           ${q.ex ? `<div style="font-size:1rem;color:var(--text-muted);margin-top:6px;"><strong>উদাহরণ:</strong> ${formatText(q.ex)}</div>` : ''}
         </div>
       `;
 
+      examAnswered = true;
       if (btnNext) btnNext.style.display = 'inline-flex';
       if (btnCheck) btnCheck.style.display = 'none';
       if (btnReveal) btnReveal.style.display = 'none';
