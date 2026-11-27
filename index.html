@@ -6326,7 +6326,7 @@
         statusHtml = `
           <div class="exam-feedback-banner correct">
             <div>✅ মাশাআল্লাহ! আপনার উত্তর সঠিক হয়েছে।</div>
-            <div style="font-size:1rem;color:var(--text-main);margin-top:4px;"><strong>আদর্শ উত্তর:</strong> ${formatText(q.a)}</div>
+            <div style="font-size:1rem;color:var(--text-main);margin-top:4px;"><strong>উত্তর:</strong> ${formatText(q.a)}</div>
           </div>
         `;
       } else if (wordRatio >= 0.35) {
@@ -6370,7 +6370,7 @@
       const q = examQuestions[examCurrentIdx];
       feedbackBox.innerHTML = `
         <div class="exam-feedback-banner" style="background:var(--primary-soft);border:1px solid var(--primary);color:var(--text-main);">
-          <div>💡 <strong>আদর্শ উত্তর:</strong> ${formatText(q.a)}</div>
+          <div>💡 <strong>উত্তর:</strong> ${formatText(q.a)}</div>
           ${q.ex ? `<div style="font-size:1rem;color:var(--text-muted);margin-top:6px;"><strong>উদাহরণ:</strong> ${formatText(q.ex)}</div>` : ''}
         </div>
       `;
