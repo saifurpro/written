@@ -4689,13 +4689,11 @@
       <div class="exam-container">
         <div class="exam-header">
           <div>
-            <h2 style="font-size:1.3rem;font-weight:700;">📝 লিখিত পরীক্ষা ও বানান যাচাই</h2>
-            <p style="font-size:1rem;color:var(--text-muted);">এখানে উত্তর লিখলে বানান ও নির্ভুলতা স্বয়ংক্রিয়ভাবে
-              যাচাই হবে, অথবা সরাসরি উত্তর দেখতে পারবেন।</p>
+            <h2 style="font-size:1.3rem;font-weight:700;">📝 সেল্ফ টেস্ট ও পরীক্ষা</h2>
             <div class="exam-type-toggle-row">
               <label class="switch-toggle-label">
                 <input type="checkbox" id="examTypeToggle" onchange="setExamTypeMode(this.checked)">
-                <span>✍️ উত্তর টাইপ করুন (বানান যাচাইসহ)</span>
+                <span>✍️ উত্তর টাইপ করুন</span>
               </label>
             </div>
           </div>
@@ -6131,7 +6129,7 @@
         }
       }
 
-      if (countEl) countEl.innerHTML = `<strong>"${escapeHtml(q)}"</strong> এর জন্য <strong>${toBengaliNumber(matched.length)}টি</strong> ফলাফল পাওয়া গেছে:`;
+      if (countEl) countEl.innerHTML = `<strong>"${escapeHtml(q)}"</strong> - <strong>ফলাফল: ${toBengaliNumber(matched.length)}টি</strong>`;
 
       if (matched.length === 0) {
         listEl.innerHTML = `
